@@ -568,7 +568,19 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         try! PasscodeEnvironment.shared.configure(PasscodeConfiguration(appGroupIdentifier: appGroupName, processRole: .mainApp, biometricKeychainService: walletBiometricKeychainService), privateAccessGroup: {
             BuildConfig.keychainAccessGroup(baseAppBundleId: baseAppBundleId)
         })
-        let maybeAppGroupUrl = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupName)
+        var maybeAppGroupUrl = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupName)
+        // AyuGram: a sideloaded build (Sideloadly / free Apple ID) may be re-signed without the
+        // app group entitlement. Keep data in the app's own container and the passcode keychain
+        // items in the app's own keychain group instead of failing at startup.
+        if maybeAppGroupUrl == nil, let supportUrl = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first {
+            let fallbackUrl = supportUrl.appendingPathComponent("ayugram-app-group", isDirectory: true)
+            if (try? FileManager.default.createDirectory(at: fallbackUrl, withIntermediateDirectories: true)) != nil {
+                maybeAppGroupUrl = fallbackUrl
+                if let privateGroup = BuildConfig.keychainAccessGroup(baseAppBundleId: baseAppBundleId) {
+                    PasscodeEnvironment.shared.overrideSharedAccessGroup(privateGroup)
+                }
+            }
+        }
         
         let buildConfig = BuildConfig(baseAppBundleId: baseAppBundleId)
         self.buildConfig = buildConfig

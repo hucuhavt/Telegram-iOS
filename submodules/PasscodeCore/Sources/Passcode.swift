@@ -73,7 +73,20 @@ public final class PasscodeEnvironment: @unchecked Sendable {
         self.mutex.lock()
         defer { self.mutex.unlock() }
         guard let configuration = self.configuration else { throw PasscodeError.unavailable }
+        if let sharedAccessGroupOverride = self.sharedAccessGroupOverride {
+            return sharedAccessGroupOverride
+        }
         return configuration.appGroupIdentifier
+    }
+
+    // AyuGram: used when the app is re-signed without the app group entitlement
+    // (sideloading), so keychain items go to the app's own access group.
+    private var sharedAccessGroupOverride: String?
+
+    public func overrideSharedAccessGroup(_ group: String) {
+        self.mutex.lock()
+        defer { self.mutex.unlock() }
+        self.sharedAccessGroupOverride = group
     }
 
     func biometricKeychainService() throws -> String {
