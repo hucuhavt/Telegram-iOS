@@ -135,6 +135,39 @@ public func ayuDeletedMessageMedia(accountPeerId: EnginePeer.Id, messageId: Engi
     return AyuSavedMediaStore.shared.deletedMessageFiles(accountId: accountPeerId.toInt64(), peerId: messageId.peerId.toInt64(), namespace: messageId.namespace, id: messageId.id)
 }
 
+// MARK: - View-once media
+
+/// Copies the downloaded attachments of a view-once message into the AyuGram cache
+/// before the message is consumed and its media is replaced with an expired placeholder.
+public func ayuSaveViewOnceMedia(accountPeerId: PeerId, postbox: Postbox, message: Message) -> [String] {
+    let settings = AyuSettings.shared
+    guard settings.saveViewOnceMedia, message.minAutoremoveOrClearTimeout == viewOnceTimeout else {
+        return []
+    }
+    let files = ayuDownloadedMediaFiles(mediaBox: postbox.mediaBox, media: message.media)
+    guard !files.isEmpty else {
+        return []
+    }
+    return AyuSavedMediaStore.shared.copy(
+        accountId: accountPeerId.toInt64(),
+        peerId: message.id.peerId.toInt64(),
+        namespace: message.id.namespace,
+        id: message.id.id,
+        tag: "v",
+        files: files
+    )
+}
+
+/// Attachments copied from a view-once message.
+public func ayuViewOnceMessageMedia(accountPeerId: EnginePeer.Id, messageId: EngineMessage.Id) -> [URL] {
+    return AyuSavedMediaStore.shared.viewOnceMessageFiles(
+        accountId: accountPeerId.toInt64(),
+        peerId: messageId.peerId.toInt64(),
+        namespace: messageId.namespace,
+        id: messageId.id
+    )
+}
+
 // MARK: - Edit history
 
 /// Saves the text (and downloaded attachments) a message had before a server edit replaces it.

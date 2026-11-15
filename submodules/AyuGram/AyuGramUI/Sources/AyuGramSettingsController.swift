@@ -43,6 +43,7 @@ enum AyuGramSettingsToggle: Int32 {
     case saveDeletedMessages
     case saveMessagesHistory
     case saveForBots
+    case saveViewOnceMedia
     case disableCopyRestrictions
     case disableAds
     case showPeerId
@@ -133,8 +134,9 @@ private func ayuGramSettingsEntries(settings: AyuSettings) -> [AyuGramSettingsEn
     entries.append(.toggle(section: .history, toggle: .saveDeletedMessages, title: "Сохранять удалённые сообщения", value: settings.saveDeletedMessages))
     entries.append(.toggle(section: .history, toggle: .saveMessagesHistory, title: "Сохранять историю изменений", value: settings.saveMessagesHistory))
     entries.append(.toggle(section: .history, toggle: .saveForBots, title: "Сохранять в чатах с ботами", value: settings.saveForBots))
+    entries.append(.toggle(section: .history, toggle: .saveViewOnceMedia, title: "Сохранять одноразовые медиа", value: settings.saveViewOnceMedia))
     entries.append(.toggle(section: .history, toggle: .disableCopyRestrictions, title: "Обходить запрет копирования", value: settings.disableCopyRestrictions))
-    entries.append(.footer(section: .history, id: footerId(.history), text: "Удалённые собеседником сообщения остаются в чате с пометкой 🧹. Прошлые версии отредактированных сообщений — в меню сообщения → «История изменений». «Обходить запрет копирования» разрешает копировать и сохранять контент в каналах и группах, где это запрещено; пересылку по-прежнему запрещает сервер."))
+    entries.append(.footer(section: .history, id: footerId(.history), text: "Удалённые собеседником сообщения остаются в чате с пометкой 🧹. Прошлые версии отредактированных сообщений — в меню сообщения → «История изменений». «Сохранять одноразовые медиа» копирует фото и видео, отправленные с таймером, в кэш AyuGram до их удаления; открыть копию можно из меню сообщения. «Обходить запрет копирования» разрешает копировать и сохранять контент в каналах и группах, где это запрещено; пересылку по-прежнему запрещает сервер."))
 
     entries.append(.header(section: .other, id: headerId(.other), text: "ПРОЧЕЕ"))
     entries.append(.toggle(section: .other, toggle: .disableAds, title: "Без рекламы", value: settings.disableAds))
@@ -171,6 +173,8 @@ public func ayuGramSettingsController(context: AccountContext) -> ViewController
             settings.saveMessagesHistory = value
         case .saveForBots:
             settings.saveForBots = value
+        case .saveViewOnceMedia:
+            settings.saveViewOnceMedia = value
         case .disableCopyRestrictions:
             settings.disableCopyRestrictions = value
         case .disableAds:

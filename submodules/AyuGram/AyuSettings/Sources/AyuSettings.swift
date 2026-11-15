@@ -65,6 +65,12 @@ public final class AyuSettings: @unchecked Sendable {
         set { self.setBool("saveForBots", newValue) }
     }
 
+    /// Copy view-once ("self-destructing") media into the AyuGram cache before it is consumed.
+    public var saveViewOnceMedia: Bool {
+        get { return self.bool("saveViewOnceMedia", true) }
+        set { self.setBool("saveViewOnceMedia", newValue) }
+    }
+
     /// Mark shown next to the time of a deleted message.
     public var deletedMark: String {
         get { return self.string("deletedMark", "🧹") }

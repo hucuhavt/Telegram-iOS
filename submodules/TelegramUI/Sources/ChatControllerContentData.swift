@@ -970,7 +970,7 @@ extension ChatControllerImpl {
                         }
                         if let cachedUserData = peerView.cachedData as? CachedUserData {
                             copyProtectionEnabled = !AyuSettings.shared.disableCopyRestrictions && (cachedUserData.flags.contains(.copyProtectionEnabled) || cachedUserData.flags.contains(.myCopyProtectionEnabled))
-                            myCopyProtectionEnabled = cachedUserData.flags.contains(.myCopyProtectionEnabled)
+                            myCopyProtectionEnabled = !AyuSettings.shared.disableCopyRestrictions && cachedUserData.flags.contains(.myCopyProtectionEnabled)
                         } else {
                             copyProtectionEnabled = peer.isCopyProtectionEnabled
                         }

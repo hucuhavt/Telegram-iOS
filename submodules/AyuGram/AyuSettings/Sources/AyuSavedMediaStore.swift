@@ -59,10 +59,19 @@ public final class AyuSavedMediaStore: @unchecked Sendable {
 
     /// Saved attachments of a message kept after deletion.
     public func deletedMessageFiles(accountId: Int64, peerId: Int64, namespace: Int32, id: Int32) -> [URL] {
+        return self.messageFiles(accountId: accountId, peerId: peerId, namespace: namespace, id: id, tag: "d")
+    }
+
+    /// Saved attachments of a view-once message.
+    public func viewOnceMessageFiles(accountId: Int64, peerId: Int64, namespace: Int32, id: Int32) -> [URL] {
+        return self.messageFiles(accountId: accountId, peerId: peerId, namespace: namespace, id: id, tag: "v")
+    }
+
+    public func messageFiles(accountId: Int64, peerId: Int64, namespace: Int32, id: Int32, tag: String) -> [URL] {
         guard let directory = self.directory(accountId: accountId) else {
             return []
         }
-        let prefix = AyuSavedMediaStore.prefix(peerId: peerId, namespace: namespace, id: id) + "d_"
+        let prefix = AyuSavedMediaStore.prefix(peerId: peerId, namespace: namespace, id: id) + "\(tag)_"
         let names = (try? FileManager.default.contentsOfDirectory(atPath: directory.path)) ?? []
         return names.filter { $0.hasPrefix(prefix) }.sorted().map { directory.appendingPathComponent($0) }
     }

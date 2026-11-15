@@ -2427,6 +2427,9 @@ public extension TelegramEngine.EngineData.Item {
                 guard let view = view as? CachedPeerDataView else {
                     preconditionFailure()
                 }
+                if AyuSettings.shared.disableCopyRestrictions {
+                    return false
+                }
                 if let cachedData = view.cachedPeerData as? CachedUserData {
                     return cachedData.flags.contains(.myCopyProtectionEnabled)
                 } else {

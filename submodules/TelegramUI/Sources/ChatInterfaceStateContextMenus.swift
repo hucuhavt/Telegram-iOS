@@ -1370,17 +1370,19 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
             })))
         }
 
-        // AyuGram: attachments saved from a message someone deleted.
+        // AyuGram: attachments saved from a deleted message or copied before a view-once message expired.
+        var savedAttachmentFiles: [URL] = []
         if message.ayuDeletedDate != nil {
-            let savedFiles = ayuDeletedMessageMedia(accountPeerId: context.account.peerId, messageId: message.id)
-            if !savedFiles.isEmpty {
-                actions.append(.action(ContextMenuActionItem(text: "Сохранённые вложения", icon: { theme in
-                    return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Download"), color: theme.actionSheet.primaryTextColor)
-                }, action: { _, f in
-                    f(.dismissWithoutContent)
-                    ayuPresentSavedFiles(context: context, urls: savedFiles)
-                })))
-            }
+            savedAttachmentFiles.append(contentsOf: ayuDeletedMessageMedia(accountPeerId: context.account.peerId, messageId: message.id))
+        }
+        savedAttachmentFiles.append(contentsOf: ayuViewOnceMessageMedia(accountPeerId: context.account.peerId, messageId: message.id))
+        if !savedAttachmentFiles.isEmpty {
+            actions.append(.action(ContextMenuActionItem(text: "Сохранённые вложения", icon: { theme in
+                return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Download"), color: theme.actionSheet.primaryTextColor)
+            }, action: { _, f in
+                f(.dismissWithoutContent)
+                ayuPresentSavedFiles(context: context, urls: savedAttachmentFiles)
+            })))
         }
 
         // AyuGram: previous versions of an edited message.
