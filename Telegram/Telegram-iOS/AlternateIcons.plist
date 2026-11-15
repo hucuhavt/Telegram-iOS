@@ -66,6 +66,26 @@
         <key>UIPrerenderedIcon</key>
         <true/>
     </dict>
+    <key>AyuIcon</key>
+    <dict>
+        <key>CFBundleIconFiles</key>
+        <array>
+            <string>AyuIcon_20x20</string>
+            <string>AyuIcon_29x29</string>
+            <string>AyuIcon_40x40</string>
+            <string>AyuIcon_58x58</string>
+            <string>AyuIcon_60x60</string>
+            <string>AyuIcon_76x76</string>
+            <string>AyuIcon_80x80</string>
+            <string>AyuIcon_87x87</string>
+            <string>AyuIcon_120x120</string>
+            <string>AyuIcon_152x152</string>
+            <string>AyuIcon_167x167</string>
+            <string>AyuIcon_180x180</string>
+        </array>
+        <key>UIPrerenderedIcon</key>
+        <true/>
+    </dict>
     <key>New1</key>
     <dict>
         <key>CFBundleIconFiles</key>
