@@ -274,6 +274,11 @@ extension ReplayContext {
     }
     
     func applyDeleteMessagesWithGlobalIds(_ ids: [Int32]) {
+        // AyuGram anti-recall: keep the messages, marked as deleted.
+        let ids = ayuKeepDeletedMessages(transaction: transaction, globalIds: ids)
+        if ids.isEmpty {
+            return
+        }
         var resourceIds: [MediaResourceId] = []
         transaction.deleteMessagesWithGlobalIds(ids, forEachMedia: { media in
             addMessageMediaResourceIdsToRemove(media: media, resourceIds: &resourceIds)
@@ -285,6 +290,11 @@ extension ReplayContext {
     }
     
     func applyDeleteMessages(_ ids: [MessageId]) {
+        // AyuGram anti-recall: keep the messages, marked as deleted.
+        let ids = ayuKeepDeletedMessages(transaction: transaction, ids: ids)
+        if ids.isEmpty {
+            return
+        }
         _internal_deleteMessages(transaction: transaction, mediaBox: mediaBox, ids: ids, manualAddMessageThreadStatsDifference: { id, add, remove in
             self.addMessageThreadStatsDifference(threadKey: id, remove: remove, addedMessagePeer: nil, addedMessageId: nil, isOutgoing: false)
         })
@@ -306,6 +316,7 @@ extension ReplayContext {
     
     func applyEditMessage(_ id: MessageId, _ message: StoreMessage) {
         var generatedEvent: (reactionAuthor: Peer, reaction: MessageReaction.Reaction, message: Message, timestamp: Int32)?
+        let ayuAccountPeerId = self.accountPeerId
         transaction.updateMessage(id, update: { previousMessage in
             let peers: [PeerId:Peer] = previousMessage.peers.reduce([:], { current, value in
                 var current = current
@@ -317,7 +328,14 @@ extension ReplayContext {
                 generatedEvent = reactionGeneratedEvent(previousMessage.reactionsAttribute, message.reactionsAttribute, message: message, transaction: transaction)
             }
 
-            return .update(mergedServerMessageUpdate(previous: previousMessage, updated: message))
+            // AyuGram: keep the text the edit replaces.
+            ayuRecordEdit(accountPeerId: ayuAccountPeerId, previous: previousMessage, updatedText: message.text)
+            var merged = mergedServerMessageUpdate(previous: previousMessage, updated: message)
+            // AyuGram: an edit of a message kept as deleted keeps its deleted mark.
+            if let deletedDate = previousMessage.ayuDeletedDate, !merged.attributes.contains(where: { $0 is AyuDeletedMessageAttribute }) {
+                merged = merged.withUpdatedAttributes(merged.attributes + [AyuDeletedMessageAttribute(date: deletedDate)])
+            }
+            return .update(merged)
         })
         // A fetch in flight may be bringing the message with its old content, over the edited one or, with none stored
         // here, instead of it; it stores this edit in its place (Postbox's record of recent edits,

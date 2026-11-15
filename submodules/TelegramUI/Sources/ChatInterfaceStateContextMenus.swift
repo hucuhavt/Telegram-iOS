@@ -41,6 +41,8 @@ import AdsInfoScreen
 import AdsReportScreen
 import WalletContext
 import WalletSendScreen
+import AyuSettings
+import AyuGramUI
  
 private struct MessageContextMenuData {
     let starStatus: Bool?
@@ -1356,6 +1358,16 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
             }
         }
         
+        // AyuGram: previous versions of an edited message.
+        if AyuSettings.shared.saveMessagesHistory, AyuEditHistoryStore.shared.hasEntries(accountId: context.account.peerId.toInt64(), peerId: message.id.peerId.toInt64(), namespace: message.id.namespace, id: message.id.id) {
+            actions.append(.action(ContextMenuActionItem(text: "История изменений", icon: { theme in
+                return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Time"), color: theme.actionSheet.primaryTextColor)
+            }, action: { _, f in
+                f(.dismissWithoutContent)
+                controllerInteraction.navigationController()?.pushViewController(ayuEditHistoryController(context: context, message: EngineMessage(message)))
+            })))
+        }
+
         let isCopyProtected = chatPresentationInterfaceState.copyProtectionEnabled || message.isCopyProtected()
         if !messageText.isEmpty || richMessageMarkdown != nil || (resourceAvailable && isImage) || diceEmoji != nil {
             if !isExpired {

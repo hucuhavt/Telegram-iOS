@@ -36,6 +36,47 @@ public final class AyuSettings: @unchecked Sendable {
         }
     }
 
+    private func string(_ key: String, _ defaultValue: String) -> String {
+        return self.defaults.string(forKey: self.prefix + key) ?? defaultValue
+    }
+
+    private func setString(_ key: String, _ value: String) {
+        self.defaults.set(value, forKey: self.prefix + key)
+        self.notifyChanged()
+    }
+
+    // MARK: - Anti-recall and message history
+
+    /// Keep messages that others delete, marked as deleted.
+    public var saveDeletedMessages: Bool {
+        get { return self.bool("saveDeletedMessages", true) }
+        set { self.setBool("saveDeletedMessages", newValue) }
+    }
+
+    /// Keep previous versions of edited messages.
+    public var saveMessagesHistory: Bool {
+        get { return self.bool("saveMessagesHistory", true) }
+        set { self.setBool("saveMessagesHistory", newValue) }
+    }
+
+    /// Also keep deleted and edited messages in chats with bots.
+    public var saveForBots: Bool {
+        get { return self.bool("saveForBots", false) }
+        set { self.setBool("saveForBots", newValue) }
+    }
+
+    /// Mark shown next to the time of a deleted message.
+    public var deletedMark: String {
+        get { return self.string("deletedMark", "🧹") }
+        set { self.setString("deletedMark", newValue) }
+    }
+
+    /// Draw deleted messages semi-transparent.
+    public var semiTransparentDeletedMessages: Bool {
+        get { return self.bool("semiTransparentDeletedMessages", false) }
+        set { self.setBool("semiTransparentDeletedMessages", newValue) }
+    }
+
     // MARK: - Ghost mode
 
     /// Send read receipts for messages (messages.readHistory and friends).

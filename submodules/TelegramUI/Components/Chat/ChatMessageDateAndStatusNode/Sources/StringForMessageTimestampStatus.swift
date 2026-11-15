@@ -6,6 +6,7 @@ import TelegramStringFormatting
 import TextFormat
 import LocalizedPeerData
 import AccountContext
+import AyuSettings
 
 public enum MessageTimestampStatusFormat {
     case full
@@ -164,6 +165,13 @@ public func stringForMessageTimestampStatus(
     }
     
     var dateText = stringForMessageTimestamp(timestamp: timestamp, dateTimeFormat: dateTimeFormat)
+    // AyuGram: mark messages kept after someone deleted them.
+    if message.ayuDeletedDate != nil {
+        let mark = AyuSettings.shared.deletedMark
+        if !mark.isEmpty {
+            dateText = "\(mark) \(dateText)"
+        }
+    }
     if timestamp == scheduleWhenOnlineTimestamp {
         dateText = "         "
     }

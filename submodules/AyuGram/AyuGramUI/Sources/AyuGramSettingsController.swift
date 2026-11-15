@@ -38,11 +38,15 @@ enum AyuGramSettingsToggle: Int32 {
     case sendUploadProgress
     case sendOfflinePacketAfterOnline
     case markReadAfterAction
+    case saveDeletedMessages
+    case saveMessagesHistory
+    case saveForBots
 }
 
 private enum AyuGramSettingsSection: Int32 {
     case ghost
     case ghostDetails
+    case spy
 }
 
 private enum AyuGramSettingsEntry: ItemListNodeEntry {
@@ -54,12 +58,18 @@ private enum AyuGramSettingsEntry: ItemListNodeEntry {
     case toggle(AyuGramSettingsToggle, String, Bool)
     case detailsFooter
 
+    case spyHeader
+    case spyToggle(AyuGramSettingsToggle, String, Bool)
+    case spyFooter
+
     var section: ItemListSectionId {
         switch self {
         case .ghostHeader, .ghostMode, .ghostFooter:
             return AyuGramSettingsSection.ghost.rawValue
         case .detailsHeader, .toggle, .detailsFooter:
             return AyuGramSettingsSection.ghostDetails.rawValue
+        case .spyHeader, .spyToggle, .spyFooter:
+            return AyuGramSettingsSection.spy.rawValue
         }
     }
 
@@ -77,6 +87,12 @@ private enum AyuGramSettingsEntry: ItemListNodeEntry {
             return 11 + toggle.rawValue
         case .detailsFooter:
             return 100
+        case .spyHeader:
+            return 200
+        case let .spyToggle(toggle, _, _):
+            return 201 + toggle.rawValue
+        case .spyFooter:
+            return 300
         }
     }
 
@@ -103,6 +119,14 @@ private enum AyuGramSettingsEntry: ItemListNodeEntry {
             })
         case .detailsFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain("«Читать после действия»: когда вы отправляете сообщение, чат отмечается прочитанным даже в режиме призрака."), sectionId: self.section)
+        case .spyHeader:
+            return ItemListSectionHeaderItem(presentationData: presentationData, text: "ШПИОНСКИЕ ФУНКЦИИ", sectionId: self.section)
+        case let .spyToggle(toggle, title, value):
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: title, value: value, sectionId: self.section, style: .blocks, updated: { value in
+                arguments.update(toggle, value)
+            })
+        case .spyFooter:
+            return ItemListTextItem(presentationData: presentationData, text: .plain("Удалённые собеседником сообщения остаются в чате с пометкой 🧹. Прошлые версии отредактированных сообщений доступны в меню сообщения → «История изменений»."), sectionId: self.section)
         }
     }
 }
@@ -121,6 +145,12 @@ private func ayuGramSettingsEntries(settings: AyuSettings) -> [AyuGramSettingsEn
     entries.append(.toggle(.sendOfflinePacketAfterOnline, "Отправлять «не в сети»", settings.sendOfflinePacketAfterOnline))
     entries.append(.toggle(.markReadAfterAction, "Читать после действия", settings.markReadAfterAction))
     entries.append(.detailsFooter)
+
+    entries.append(.spyHeader)
+    entries.append(.spyToggle(.saveDeletedMessages, "Сохранять удалённые сообщения", settings.saveDeletedMessages))
+    entries.append(.spyToggle(.saveMessagesHistory, "Сохранять историю изменений", settings.saveMessagesHistory))
+    entries.append(.spyToggle(.saveForBots, "Сохранять в чатах с ботами", settings.saveForBots))
+    entries.append(.spyFooter)
     return entries
 }
 
@@ -143,6 +173,12 @@ public func ayuGramSettingsController(context: AccountContext) -> ViewController
             settings.sendOfflinePacketAfterOnline = value
         case .markReadAfterAction:
             settings.markReadAfterAction = value
+        case .saveDeletedMessages:
+            settings.saveDeletedMessages = value
+        case .saveMessagesHistory:
+            settings.saveMessagesHistory = value
+        case .saveForBots:
+            settings.saveForBots = value
         }
     })
 
