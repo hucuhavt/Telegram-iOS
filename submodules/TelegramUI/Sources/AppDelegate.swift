@@ -54,10 +54,10 @@ import WalletSendScreen
 import PasscodeCore
 import LiquidGlassShapes
 import MTProtoRustEngine
+import AyuSettings
 
 #if DEBUG
 import AlertComponent
-import AyuSettings
 #endif
 
 private let handleVoipNotifications = false
