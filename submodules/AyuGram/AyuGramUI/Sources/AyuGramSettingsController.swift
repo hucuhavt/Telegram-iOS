@@ -41,6 +41,7 @@ enum AyuGramSettingsToggle: Int32 {
     case saveDeletedMessages
     case saveMessagesHistory
     case saveForBots
+    case disableCopyRestrictions
 }
 
 private enum AyuGramSettingsSection: Int32 {
@@ -126,7 +127,7 @@ private enum AyuGramSettingsEntry: ItemListNodeEntry {
                 arguments.update(toggle, value)
             })
         case .spyFooter:
-            return ItemListTextItem(presentationData: presentationData, text: .plain("Удалённые собеседником сообщения остаются в чате с пометкой 🧹. Прошлые версии отредактированных сообщений доступны в меню сообщения → «История изменений»."), sectionId: self.section)
+            return ItemListTextItem(presentationData: presentationData, text: .plain("Удалённые собеседником сообщения остаются в чате с пометкой 🧹. Прошлые версии отредактированных сообщений доступны в меню сообщения → «История изменений». «Обходить запрет копирования» разрешает копировать текст, сохранять фото, видео и файлы и делать скриншоты в чатах и каналах, где это запрещено. Пересылка таких сообщений всё равно запрещена сервером."), sectionId: self.section)
         }
     }
 }
@@ -150,6 +151,7 @@ private func ayuGramSettingsEntries(settings: AyuSettings) -> [AyuGramSettingsEn
     entries.append(.spyToggle(.saveDeletedMessages, "Сохранять удалённые сообщения", settings.saveDeletedMessages))
     entries.append(.spyToggle(.saveMessagesHistory, "Сохранять историю изменений", settings.saveMessagesHistory))
     entries.append(.spyToggle(.saveForBots, "Сохранять в чатах с ботами", settings.saveForBots))
+    entries.append(.spyToggle(.disableCopyRestrictions, "Обходить запрет копирования", settings.disableCopyRestrictions))
     entries.append(.spyFooter)
     return entries
 }
@@ -179,6 +181,8 @@ public func ayuGramSettingsController(context: AccountContext) -> ViewController
             settings.saveMessagesHistory = value
         case .saveForBots:
             settings.saveForBots = value
+        case .disableCopyRestrictions:
+            settings.disableCopyRestrictions = value
         }
     })
 

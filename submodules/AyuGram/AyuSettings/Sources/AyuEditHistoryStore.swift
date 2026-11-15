@@ -6,10 +6,13 @@ public struct AyuEditHistoryEntry: Codable, Equatable {
     public let text: String
     /// When that version was posted or last edited (unix time).
     public let date: Int32
+    /// Copies of that version's attachments in `AyuSavedMediaStore` (file names), if it had any downloaded.
+    public let mediaFiles: [String]?
 
-    public init(text: String, date: Int32) {
+    public init(text: String, date: Int32, mediaFiles: [String]? = nil) {
         self.text = text
         self.date = date
+        self.mediaFiles = mediaFiles
     }
 }
 
@@ -53,7 +56,7 @@ public final class AyuEditHistoryStore: @unchecked Sendable {
         }
         self.queue.async {
             var entries = self.read(url)
-            if entries.last?.text == entry.text {
+            if let last = entries.last, last.text == entry.text, (last.mediaFiles ?? []) == (entry.mediaFiles ?? []) {
                 return
             }
             entries.append(entry)

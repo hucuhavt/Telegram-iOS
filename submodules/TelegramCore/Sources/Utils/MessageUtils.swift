@@ -1,6 +1,7 @@
 import Foundation
 import Postbox
 internal import TelegramApi
+import AyuSettings
 
 public extension MessageFlags {
     var isSending: Bool {
@@ -536,6 +537,9 @@ public extension Message {
     }
     
     func isCopyProtected() -> Bool {
+        if AyuSettings.shared.disableCopyRestrictions {
+            return false
+        }
         if self.flags.contains(.CopyProtected) {
             return true
         } else if let group = self.peers[self.id.peerId] as? TelegramGroup, group.flags.contains(.copyProtectionEnabled) {

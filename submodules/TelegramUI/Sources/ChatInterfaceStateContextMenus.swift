@@ -1358,6 +1358,19 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
             }
         }
         
+        // AyuGram: attachments saved from a message someone deleted.
+        if message.ayuDeletedDate != nil {
+            let savedFiles = ayuDeletedMessageMedia(accountPeerId: context.account.peerId, messageId: message.id)
+            if !savedFiles.isEmpty {
+                actions.append(.action(ContextMenuActionItem(text: "Сохранённые вложения", icon: { theme in
+                    return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Download"), color: theme.actionSheet.primaryTextColor)
+                }, action: { _, f in
+                    f(.dismissWithoutContent)
+                    ayuPresentSavedFiles(context: context, urls: savedFiles)
+                })))
+            }
+        }
+
         // AyuGram: previous versions of an edited message.
         if AyuSettings.shared.saveMessagesHistory, AyuEditHistoryStore.shared.hasEntries(accountId: context.account.peerId.toInt64(), peerId: message.id.peerId.toInt64(), namespace: message.id.namespace, id: message.id.id) {
             actions.append(.action(ContextMenuActionItem(text: "История изменений", icon: { theme in

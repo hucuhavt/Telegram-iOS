@@ -1,5 +1,6 @@
 import SwiftSignalKit
 import Postbox
+import AyuSettings
 
 public typealias EngineExportedPeerInvitation = ExportedInvitation
 public typealias EngineSecretChatKeyFingerprint = SecretChatKeyFingerprint
@@ -2389,6 +2390,9 @@ public extension TelegramEngine.EngineData.Item {
                     preconditionFailure()
                 }
                 guard let peer = peerViewMainPeer(view) else {
+                    return false
+                }
+                if AyuSettings.shared.disableCopyRestrictions {
                     return false
                 }
                 if let cachedPeerData = view.cachedData as? CachedUserData {

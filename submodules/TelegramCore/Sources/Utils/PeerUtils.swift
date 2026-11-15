@@ -1,5 +1,6 @@
 import Foundation
 import Postbox
+import AyuSettings
 
 public let anonymousSavedMessagesId: Int64 = 2666000
 
@@ -270,6 +271,9 @@ public extension Peer {
     }
     
     var isCopyProtectionEnabled: Bool {
+        if AyuSettings.shared.disableCopyRestrictions {
+            return false
+        }
         switch self {
         case let group as TelegramGroup:
             return group.flags.contains(.copyProtectionEnabled)

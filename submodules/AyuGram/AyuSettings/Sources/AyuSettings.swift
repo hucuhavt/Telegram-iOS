@@ -77,6 +77,15 @@ public final class AyuSettings: @unchecked Sendable {
         set { self.setBool("semiTransparentDeletedMessages", newValue) }
     }
 
+    // MARK: - Restrictions
+
+    /// Ignore "restrict saving content": allow copying text, saving media and screenshots
+    /// in protected chats and channels (AyuGram has this on by default).
+    public var disableCopyRestrictions: Bool {
+        get { return self.bool("disableCopyRestrictions", true) }
+        set { self.setBool("disableCopyRestrictions", newValue) }
+    }
+
     // MARK: - Ghost mode
 
     /// Send read receipts for messages (messages.readHistory and friends).

@@ -275,7 +275,7 @@ extension ReplayContext {
     
     func applyDeleteMessagesWithGlobalIds(_ ids: [Int32]) {
         // AyuGram anti-recall: keep the messages, marked as deleted.
-        let ids = ayuKeepDeletedMessages(transaction: transaction, globalIds: ids)
+        let ids = ayuKeepDeletedMessages(transaction: transaction, globalIds: ids, mediaContext: AyuMediaContext(accountPeerId: self.accountPeerId, mediaBox: mediaBox))
         if ids.isEmpty {
             return
         }
@@ -291,7 +291,7 @@ extension ReplayContext {
     
     func applyDeleteMessages(_ ids: [MessageId]) {
         // AyuGram anti-recall: keep the messages, marked as deleted.
-        let ids = ayuKeepDeletedMessages(transaction: transaction, ids: ids)
+        let ids = ayuKeepDeletedMessages(transaction: transaction, ids: ids, mediaContext: AyuMediaContext(accountPeerId: self.accountPeerId, mediaBox: mediaBox))
         if ids.isEmpty {
             return
         }
@@ -316,7 +316,7 @@ extension ReplayContext {
     
     func applyEditMessage(_ id: MessageId, _ message: StoreMessage) {
         var generatedEvent: (reactionAuthor: Peer, reaction: MessageReaction.Reaction, message: Message, timestamp: Int32)?
-        let ayuAccountPeerId = self.accountPeerId
+        let ayuMediaContext = AyuMediaContext(accountPeerId: self.accountPeerId, mediaBox: mediaBox)
         transaction.updateMessage(id, update: { previousMessage in
             let peers: [PeerId:Peer] = previousMessage.peers.reduce([:], { current, value in
                 var current = current
@@ -329,7 +329,7 @@ extension ReplayContext {
             }
 
             // AyuGram: keep the text the edit replaces.
-            ayuRecordEdit(accountPeerId: ayuAccountPeerId, previous: previousMessage, updatedText: message.text)
+            ayuRecordEdit(mediaContext: ayuMediaContext, previous: previousMessage, updated: message)
             var merged = mergedServerMessageUpdate(previous: previousMessage, updated: message)
             // AyuGram: an edit of a message kept as deleted keeps its deleted mark.
             if let deletedDate = previousMessage.ayuDeletedDate, !merged.attributes.contains(where: { $0 is AyuDeletedMessageAttribute }) {
