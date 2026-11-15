@@ -105,6 +105,7 @@ swift_library(
         "//submodules/TelegramUI/Components/SendInviteLinkScreen",
         "//submodules/SettingsUI",
         "//submodules/AyuGram/AyuGramUI",
+        "//submodules/AyuGram/AyuSettings",
         "//submodules/ShareController",
         "//submodules/TelegramUI/Components/ShareWithPeersScreen",
         "//submodules/StatisticsUI",

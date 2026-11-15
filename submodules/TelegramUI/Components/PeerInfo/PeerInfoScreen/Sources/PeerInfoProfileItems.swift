@@ -16,6 +16,7 @@ import WebUI
 import AvatarNode
 import PeerNameColorItem
 import BoostLevelIconComponent
+import AyuSettings
 
 private let enabledPublicBioEntities: EnabledEntityTypes = [.allUrl, .mention, .hashtag]
 private let enabledPrivateBioEntities: EnabledEntityTypes = [.internalUrl, .mention, .hashtag]
@@ -953,6 +954,22 @@ func infoItems(
         }
     }
     
+    // AyuGram: show the peer ID (Bot API format), tap to copy.
+    if let peer = data.peer, AyuSettings.shared.showPeerId {
+        let peerIdText = ayuBotApiPeerId(peer.id)
+        items[.peerInfo]!.append(PeerInfoScreenLabeledValueItem(
+            id: 999_001,
+            label: "ID",
+            text: peerIdText,
+            action: { _, _ in
+                UIPasteboard.general.string = peerIdText
+            },
+            requestLayout: { animated in
+                interaction.requestLayout(animated)
+            }
+        ))
+    }
+
     var result: [(AnyHashable, [PeerInfoScreenItem])] = []
     for section in InfoSection.allCases {
         if let sectionItems = items[section], !sectionItems.isEmpty {
@@ -1917,4 +1934,18 @@ func editingItems(data: PeerInfoScreenData?, boostStatus: ChannelBoostStatus?, s
         }
     }
     return result
+}
+
+
+/// AyuGram: a peer ID the way Bot API and AyuGram Desktop show it.
+private func ayuBotApiPeerId(_ peerId: EnginePeer.Id) -> String {
+    let value = peerId.id._internalGetInt64Value()
+    switch peerId.namespace {
+    case Namespaces.Peer.CloudGroup:
+        return "\(-value)"
+    case Namespaces.Peer.CloudChannel:
+        return "-100\(value)"
+    default:
+        return "\(value)"
+    }
 }

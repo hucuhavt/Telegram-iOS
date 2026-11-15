@@ -57,6 +57,7 @@ import MTProtoRustEngine
 
 #if DEBUG
 import AlertComponent
+import AyuSettings
 #endif
 
 private let handleVoipNotifications = false
@@ -445,6 +446,16 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         }
         self.window = window
         self.nativeWindow = window
+        
+        // AyuGram streamer mode: the app stays visible on the device but is blank in
+        // screenshots, screen recordings and broadcasts.
+        let ayuContainerLayer = hostView.containerView.layer
+        if AyuSettings.shared.streamerMode {
+            setLayerDisableScreenshots(ayuContainerLayer, true)
+        }
+        let _ = NotificationCenter.default.addObserver(forName: AyuSettings.didChangeNotification, object: nil, queue: .main, using: { _ in
+            setLayerDisableScreenshots(ayuContainerLayer, AyuSettings.shared.streamerMode)
+        })
         
         hostView.containerView.layer.addSublayer(MetalEngine.shared.rootLayer)
         // On the first start after an update, compile the pipelines that would otherwise stall their first use.

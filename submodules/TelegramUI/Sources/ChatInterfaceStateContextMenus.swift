@@ -1358,6 +1358,18 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
             }
         }
         
+        // AyuGram shadow ban: hide this user's messages in groups (local only).
+        if let author = message.author, author.id != message.id.peerId, author.id != context.account.peerId, author is TelegramUser {
+            let authorId = author.id.toInt64()
+            actions.append(.action(ContextMenuActionItem(text: "Скрывать сообщения автора", icon: { theme in
+                return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/EyeLocked"), color: theme.actionSheet.primaryTextColor)
+            }, action: { _, f in
+                f(.dismissWithoutContent)
+                AyuSettings.shared.setShadowBanned(authorId, true)
+                controllerInteraction.displayUndo(.info(title: nil, text: "Сообщения этого пользователя скрыты. Список — в Настройки → AyuGram.", timeout: nil, customUndoText: nil))
+            })))
+        }
+
         // AyuGram: attachments saved from a message someone deleted.
         if message.ayuDeletedDate != nil {
             let savedFiles = ayuDeletedMessageMedia(accountPeerId: context.account.peerId, messageId: message.id)

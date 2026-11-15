@@ -86,6 +86,68 @@ public final class AyuSettings: @unchecked Sendable {
         set { self.setBool("disableCopyRestrictions", newValue) }
     }
 
+    /// Do not load sponsored messages and sponsored search results.
+    public var disableAds: Bool {
+        get { return self.bool("disableAds", true) }
+        set { self.setBool("disableAds", newValue) }
+    }
+
+    /// Show the user/chat ID in profiles.
+    public var showPeerId: Bool {
+        get { return self.bool("showPeerId", true) }
+        set { self.setBool("showPeerId", newValue) }
+    }
+
+    /// Streamer mode: hide the whole app from screenshots and screen recordings.
+    public var streamerMode: Bool {
+        get { return self.bool("streamerMode", false) }
+        set { self.setBool("streamerMode", newValue) }
+    }
+
+    // MARK: - Shadow ban
+
+    private let shadowBanLock = NSLock()
+    private var cachedShadowBanIds: Set<Int64>?
+
+    /// Users whose messages are hidden locally in groups and channels' comments.
+    public var shadowBanIds: Set<Int64> {
+        self.shadowBanLock.lock()
+        defer { self.shadowBanLock.unlock() }
+        if let cached = self.cachedShadowBanIds {
+            return cached
+        }
+        let stored = (self.defaults.array(forKey: self.prefix + "shadowBanIds") as? [NSNumber]) ?? []
+        let value = Set(stored.map { $0.int64Value })
+        self.cachedShadowBanIds = value
+        return value
+    }
+
+    public func isShadowBanned(_ id: Int64) -> Bool {
+        return self.shadowBanIds.contains(id)
+    }
+
+    public func setShadowBanned(_ id: Int64, _ banned: Bool) {
+        var ids = self.shadowBanIds
+        if banned {
+            ids.insert(id)
+        } else {
+            ids.remove(id)
+        }
+        self.storeShadowBanIds(ids)
+    }
+
+    public func clearShadowBans() {
+        self.storeShadowBanIds([])
+    }
+
+    private func storeShadowBanIds(_ ids: Set<Int64>) {
+        self.shadowBanLock.lock()
+        self.cachedShadowBanIds = ids
+        self.shadowBanLock.unlock()
+        self.defaults.set(ids.map { NSNumber(value: $0) }, forKey: self.prefix + "shadowBanIds")
+        self.notifyChanged()
+    }
+
     // MARK: - Ghost mode
 
     /// Send read receipts for messages (messages.readHistory and friends).

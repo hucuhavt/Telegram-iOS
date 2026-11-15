@@ -24,9 +24,11 @@ public func ayuSettingsUpdates() -> Signal<Void, NoError> {
 
 private final class AyuGramSettingsArguments {
     let update: (AyuGramSettingsToggle, Bool) -> Void
+    let clearHiddenUsers: () -> Void
 
-    init(update: @escaping (AyuGramSettingsToggle, Bool) -> Void) {
+    init(update: @escaping (AyuGramSettingsToggle, Bool) -> Void, clearHiddenUsers: @escaping () -> Void) {
         self.update = update
+        self.clearHiddenUsers = clearHiddenUsers
     }
 }
 
@@ -42,58 +44,41 @@ enum AyuGramSettingsToggle: Int32 {
     case saveMessagesHistory
     case saveForBots
     case disableCopyRestrictions
+    case disableAds
+    case showPeerId
+    case streamerMode
 }
 
 private enum AyuGramSettingsSection: Int32 {
     case ghost
     case ghostDetails
-    case spy
+    case history
+    case other
 }
 
 private enum AyuGramSettingsEntry: ItemListNodeEntry {
-    case ghostHeader
-    case ghostMode(Bool)
-    case ghostFooter
-
-    case detailsHeader
-    case toggle(AyuGramSettingsToggle, String, Bool)
-    case detailsFooter
-
-    case spyHeader
-    case spyToggle(AyuGramSettingsToggle, String, Bool)
-    case spyFooter
+    case header(section: AyuGramSettingsSection, id: Int32, text: String)
+    case footer(section: AyuGramSettingsSection, id: Int32, text: String)
+    case toggle(section: AyuGramSettingsSection, toggle: AyuGramSettingsToggle, title: String, value: Bool)
+    case clearHiddenUsers(count: Int)
 
     var section: ItemListSectionId {
         switch self {
-        case .ghostHeader, .ghostMode, .ghostFooter:
-            return AyuGramSettingsSection.ghost.rawValue
-        case .detailsHeader, .toggle, .detailsFooter:
-            return AyuGramSettingsSection.ghostDetails.rawValue
-        case .spyHeader, .spyToggle, .spyFooter:
-            return AyuGramSettingsSection.spy.rawValue
+        case let .header(section, _, _), let .footer(section, _, _), let .toggle(section, _, _, _):
+            return section.rawValue
+        case .clearHiddenUsers:
+            return AyuGramSettingsSection.other.rawValue
         }
     }
 
     var stableId: Int32 {
         switch self {
-        case .ghostHeader:
-            return 0
-        case .ghostMode:
-            return 1
-        case .ghostFooter:
-            return 2
-        case .detailsHeader:
-            return 10
-        case let .toggle(toggle, _, _):
-            return 11 + toggle.rawValue
-        case .detailsFooter:
-            return 100
-        case .spyHeader:
-            return 200
-        case let .spyToggle(toggle, _, _):
-            return 201 + toggle.rawValue
-        case .spyFooter:
-            return 300
+        case let .header(_, id, _), let .footer(_, id, _):
+            return id
+        case let .toggle(section, toggle, _, _):
+            return section.rawValue * 100 + 10 + toggle.rawValue
+        case .clearHiddenUsers:
+            return AyuGramSettingsSection.other.rawValue * 100 + 90
         }
     }
 
@@ -104,55 +89,60 @@ private enum AyuGramSettingsEntry: ItemListNodeEntry {
     func item(presentationData: ItemListPresentationData, arguments: Any) -> ListViewItem {
         let arguments = arguments as! AyuGramSettingsArguments
         switch self {
-        case .ghostHeader:
-            return ItemListSectionHeaderItem(presentationData: presentationData, text: "РЕЖИМ ПРИЗРАКА", sectionId: self.section)
-        case let .ghostMode(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: "Режим призрака", value: value, sectionId: self.section, style: .blocks, updated: { value in
-                arguments.update(.ghostMode, value)
-            })
-        case .ghostFooter:
-            return ItemListTextItem(presentationData: presentationData, text: .plain("Собеседники не увидят, что вы прочитали сообщения, просмотрели истории, были в сети или печатаете."), sectionId: self.section)
-        case .detailsHeader:
-            return ItemListSectionHeaderItem(presentationData: presentationData, text: "НАСТРОЙКА", sectionId: self.section)
-        case let .toggle(toggle, title, value):
+        case let .header(_, _, text):
+            return ItemListSectionHeaderItem(presentationData: presentationData, text: text, sectionId: self.section)
+        case let .footer(_, _, text):
+            return ItemListTextItem(presentationData: presentationData, text: .plain(text), sectionId: self.section)
+        case let .toggle(_, toggle, title, value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: title, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.update(toggle, value)
             })
-        case .detailsFooter:
-            return ItemListTextItem(presentationData: presentationData, text: .plain("«Читать после действия»: когда вы отправляете сообщение, чат отмечается прочитанным даже в режиме призрака."), sectionId: self.section)
-        case .spyHeader:
-            return ItemListSectionHeaderItem(presentationData: presentationData, text: "ШПИОНСКИЕ ФУНКЦИИ", sectionId: self.section)
-        case let .spyToggle(toggle, title, value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: title, value: value, sectionId: self.section, style: .blocks, updated: { value in
-                arguments.update(toggle, value)
+        case let .clearHiddenUsers(count):
+            return ItemListActionItem(presentationData: presentationData, systemStyle: .glass, title: "Показать скрытых пользователей снова (\(count))", kind: count == 0 ? .disabled : .destructive, alignment: .natural, sectionId: self.section, style: .blocks, action: {
+                arguments.clearHiddenUsers()
             })
-        case .spyFooter:
-            return ItemListTextItem(presentationData: presentationData, text: .plain("Удалённые собеседником сообщения остаются в чате с пометкой 🧹. Прошлые версии отредактированных сообщений доступны в меню сообщения → «История изменений». «Обходить запрет копирования» разрешает копировать текст, сохранять фото, видео и файлы и делать скриншоты в чатах и каналах, где это запрещено. Пересылка таких сообщений всё равно запрещена сервером."), sectionId: self.section)
         }
     }
 }
 
+private func headerId(_ section: AyuGramSettingsSection) -> Int32 {
+    return section.rawValue * 100
+}
+
+private func footerId(_ section: AyuGramSettingsSection) -> Int32 {
+    return section.rawValue * 100 + 99
+}
+
 private func ayuGramSettingsEntries(settings: AyuSettings) -> [AyuGramSettingsEntry] {
     var entries: [AyuGramSettingsEntry] = []
-    entries.append(.ghostHeader)
-    entries.append(.ghostMode(settings.isGhostModeActive))
-    entries.append(.ghostFooter)
 
-    entries.append(.detailsHeader)
-    entries.append(.toggle(.sendReadMessages, "Отправлять «прочитано»", settings.sendReadMessages))
-    entries.append(.toggle(.sendReadStories, "Отправлять просмотр историй", settings.sendReadStories))
-    entries.append(.toggle(.sendOnlinePackets, "Отправлять «в сети»", settings.sendOnlinePackets))
-    entries.append(.toggle(.sendUploadProgress, "Отправлять «печатает»", settings.sendUploadProgress))
-    entries.append(.toggle(.sendOfflinePacketAfterOnline, "Отправлять «не в сети»", settings.sendOfflinePacketAfterOnline))
-    entries.append(.toggle(.markReadAfterAction, "Читать после действия", settings.markReadAfterAction))
-    entries.append(.detailsFooter)
+    entries.append(.header(section: .ghost, id: headerId(.ghost), text: "РЕЖИМ ПРИЗРАКА"))
+    entries.append(.toggle(section: .ghost, toggle: .ghostMode, title: "Режим призрака", value: settings.isGhostModeActive))
+    entries.append(.footer(section: .ghost, id: footerId(.ghost), text: "Собеседники не увидят, что вы прочитали сообщения, просмотрели истории, были в сети или печатаете."))
 
-    entries.append(.spyHeader)
-    entries.append(.spyToggle(.saveDeletedMessages, "Сохранять удалённые сообщения", settings.saveDeletedMessages))
-    entries.append(.spyToggle(.saveMessagesHistory, "Сохранять историю изменений", settings.saveMessagesHistory))
-    entries.append(.spyToggle(.saveForBots, "Сохранять в чатах с ботами", settings.saveForBots))
-    entries.append(.spyToggle(.disableCopyRestrictions, "Обходить запрет копирования", settings.disableCopyRestrictions))
-    entries.append(.spyFooter)
+    entries.append(.header(section: .ghostDetails, id: headerId(.ghostDetails), text: "НАСТРОЙКА"))
+    entries.append(.toggle(section: .ghostDetails, toggle: .sendReadMessages, title: "Отправлять «прочитано»", value: settings.sendReadMessages))
+    entries.append(.toggle(section: .ghostDetails, toggle: .sendReadStories, title: "Отправлять просмотр историй", value: settings.sendReadStories))
+    entries.append(.toggle(section: .ghostDetails, toggle: .sendOnlinePackets, title: "Отправлять «в сети»", value: settings.sendOnlinePackets))
+    entries.append(.toggle(section: .ghostDetails, toggle: .sendUploadProgress, title: "Отправлять «печатает»", value: settings.sendUploadProgress))
+    entries.append(.toggle(section: .ghostDetails, toggle: .sendOfflinePacketAfterOnline, title: "Отправлять «не в сети»", value: settings.sendOfflinePacketAfterOnline))
+    entries.append(.toggle(section: .ghostDetails, toggle: .markReadAfterAction, title: "Читать после действия", value: settings.markReadAfterAction))
+    entries.append(.footer(section: .ghostDetails, id: footerId(.ghostDetails), text: "«Читать после действия»: когда вы отправляете сообщение, чат отмечается прочитанным даже в режиме призрака."))
+
+    entries.append(.header(section: .history, id: headerId(.history), text: "ИСТОРИЯ СООБЩЕНИЙ"))
+    entries.append(.toggle(section: .history, toggle: .saveDeletedMessages, title: "Сохранять удалённые сообщения", value: settings.saveDeletedMessages))
+    entries.append(.toggle(section: .history, toggle: .saveMessagesHistory, title: "Сохранять историю изменений", value: settings.saveMessagesHistory))
+    entries.append(.toggle(section: .history, toggle: .saveForBots, title: "Сохранять в чатах с ботами", value: settings.saveForBots))
+    entries.append(.toggle(section: .history, toggle: .disableCopyRestrictions, title: "Обходить запрет копирования", value: settings.disableCopyRestrictions))
+    entries.append(.footer(section: .history, id: footerId(.history), text: "Удалённые собеседником сообщения остаются в чате с пометкой 🧹. Прошлые версии отредактированных сообщений — в меню сообщения → «История изменений». «Обходить запрет копирования» разрешает копировать и сохранять контент в каналах и группах, где это запрещено; пересылку по-прежнему запрещает сервер."))
+
+    entries.append(.header(section: .other, id: headerId(.other), text: "ПРОЧЕЕ"))
+    entries.append(.toggle(section: .other, toggle: .disableAds, title: "Без рекламы", value: settings.disableAds))
+    entries.append(.toggle(section: .other, toggle: .showPeerId, title: "Показывать ID в профиле", value: settings.showPeerId))
+    entries.append(.toggle(section: .other, toggle: .streamerMode, title: "Режим стримера", value: settings.streamerMode))
+    entries.append(.clearHiddenUsers(count: settings.shadowBanIds.count))
+    entries.append(.footer(section: .other, id: footerId(.other), text: "Режим стримера скрывает приложение на скриншотах и записи экрана. Скрыть сообщения человека в группах: зажмите его сообщение → «Скрывать сообщения автора»."))
+
     return entries
 }
 
@@ -183,7 +173,15 @@ public func ayuGramSettingsController(context: AccountContext) -> ViewController
             settings.saveForBots = value
         case .disableCopyRestrictions:
             settings.disableCopyRestrictions = value
+        case .disableAds:
+            settings.disableAds = value
+        case .showPeerId:
+            settings.showPeerId = value
+        case .streamerMode:
+            settings.streamerMode = value
         }
+    }, clearHiddenUsers: {
+        settings.clearShadowBans()
     })
 
     let signal = combineLatest(queue: .mainQueue(),

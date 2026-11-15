@@ -12,6 +12,7 @@ import TextFormat
 import Markdown
 import Display
 import TelegramStringFormatting
+import AyuSettings
 
 struct ChatHistoryEntriesForViewState {
     private var messageStableIdToLocalId: [UInt32: Int64] = [:]
@@ -179,6 +180,11 @@ func chatHistoryEntriesForView(
         }
         
         if pendingRemovedMessages.contains(message.id) {
+            continue
+        }
+        
+        // AyuGram shadow ban: hide messages of chosen users outside their private chat.
+        if let authorId = message.author?.id, authorId != message.id.peerId, authorId != context.account.peerId, AyuSettings.shared.isShadowBanned(authorId.toInt64()) {
             continue
         }
         
