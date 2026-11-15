@@ -62,7 +62,7 @@ private func fetchLocalFileResource(path: String, move: Bool) -> Signal<MediaRes
 }
 
 func fetchResource(account: Account, resource: MediaResource, intervals: Signal<[(Range<Int64>, MediaBoxFetchPriority)], NoError>, parameters: MediaResourceFetchParameters?) -> Signal<MediaResourceDataFetchResult, MediaResourceDataFetchError>? {
-    return fetchResource(
+    guard let result = fetchResource(
         accountPeerId: account.peerId,
         postbox: account.postbox,
         network: account.network,
@@ -72,7 +72,19 @@ func fetchResource(account: Account, resource: MediaResource, intervals: Signal<
         resource: resource,
         intervals: intervals,
         parameters: parameters
-    )
+    ) else {
+        return nil
+    }
+    guard let info = parameters?.info as? TelegramCloudMediaResourceFetchInfo else {
+        return result
+    }
+    // AyuGram: copy view-once attachments when their download completes.
+    return result |> map { value in
+        if case let .dataPart(_, _, _, complete) = value, complete {
+            ayuViewOnceMediaFetchCompleted(accountPeerId: account.peerId, postbox: account.postbox, reference: info.reference)
+        }
+        return value
+    }
 }
     
 func fetchResource(

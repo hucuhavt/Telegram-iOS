@@ -13,7 +13,6 @@ import AppBundle
 import LocalizedPeerData
 import TooltipUI
 import TelegramNotices
-import AyuSettings
 
 private func galleryMediaForMedia(media: Media) -> Media? {
     if let media = media as? TelegramMediaImage {
@@ -550,13 +549,6 @@ public final class SecretMediaPreviewController: ViewController {
                     self?.didSetReady = true
                 }
                 self._ready.set(ready |> map { true })
-                self.saveViewOnceMediaIfNeeded(message: message)
-                let _ = ready.start(next: { [weak self] _ in
-                    guard let self, let message = self.messageView?.message else {
-                        return
-                    }
-                    self.saveViewOnceMediaIfNeeded(message: message)
-                })
                 self.markMessageAsConsumedDisposable.set(self.context.engine.messages.markMessageContentAsConsumedInteractively(messageId: message.id).start())
             } else {
                 var beginTimeAndTimeout: (Double, Double, Bool)?
@@ -607,13 +599,6 @@ public final class SecretMediaPreviewController: ViewController {
         }
     }
     
-    private func saveViewOnceMediaIfNeeded(message: Message) {
-        guard AyuSettings.shared.saveViewOnceMedia else {
-            return
-        }
-        let _ = ayuSaveViewOnceMedia(accountPeerId: self.context.account.peerId, postbox: self.context.account.postbox, message: message)
-    }
-
     private func dismissAllTooltips() {
         if let tooltipController = self.tooltipController {
             self.tooltipController = nil

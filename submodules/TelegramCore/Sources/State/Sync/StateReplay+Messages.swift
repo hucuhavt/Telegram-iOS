@@ -239,6 +239,13 @@ extension ReplayContext {
                 }
             }
         }
+
+        // AyuGram: download view-once attachments right away and copy them once complete.
+        for message in messages {
+            if case let .Id(id) = message.id, let storedMessage = transaction.getMessage(id) {
+                ayuTrackViewOnceMedia(accountPeerId: self.accountPeerId, postbox: self.postbox, message: storedMessage)
+            }
+        }
     }
     
     func applyAddScheduledMessages(_ messages: [StoreMessage]) {

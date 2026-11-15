@@ -145,7 +145,7 @@ public func ayuSaveViewOnceMedia(accountPeerId: PeerId, postbox: Postbox, messag
         return []
     }
     let files = ayuDownloadedMediaFiles(mediaBox: postbox.mediaBox, media: message.media)
-    guard !files.isEmpty else {
+    guard !files.isEmpty, files.count == ayuViewOnceMediaResources(message.media).count else {
         return []
     }
     return AyuSavedMediaStore.shared.copy(
@@ -156,6 +156,65 @@ public func ayuSaveViewOnceMedia(accountPeerId: PeerId, postbox: Postbox, messag
         tag: "v",
         files: files
     )
+}
+
+/// Full-size resources of a view-once message's attachments.
+private func ayuViewOnceMediaResources(_ media: [Media]) -> [(media: Media, resource: MediaResource)] {
+    var result: [(media: Media, resource: MediaResource)] = []
+    for item in media {
+        if let image = item as? TelegramMediaImage {
+            if let representation = largestImageRepresentation(image.representations) {
+                result.append((item, representation.resource))
+            }
+        } else if let file = item as? TelegramMediaFile {
+            result.append((item, file.resource))
+        }
+    }
+    return result
+}
+
+/// Downloads a view-once message's attachments in the background and copies them into
+/// the AyuGram cache as soon as each one is complete, so the copy exists before the
+/// message is consumed and its media is replaced with an expired placeholder.
+func ayuTrackViewOnceMedia(accountPeerId: PeerId, postbox: Postbox, message: Message) {
+    guard AyuSettings.shared.saveViewOnceMedia, message.minAutoremoveOrClearTimeout == viewOnceTimeout else {
+        return
+    }
+    let _ = ayuSaveViewOnceMedia(accountPeerId: accountPeerId, postbox: postbox, message: message)
+    let messageReference = MessageReference(message)
+    for (media, resource) in ayuViewOnceMediaResources(message.media) {
+        let userContentType: MediaResourceUserContentType
+        if let file = media as? TelegramMediaFile {
+            userContentType = MediaResourceUserContentType(file: file)
+        } else {
+            userContentType = .image
+        }
+        let _ = fetchedMediaResource(
+            mediaBox: postbox.mediaBox,
+            userLocation: .peer(message.id.peerId),
+            userContentType: userContentType,
+            reference: .media(media: .message(message: messageReference, media: media), resource: resource)
+        ).start(completed: {
+            let _ = ayuSaveViewOnceMedia(accountPeerId: accountPeerId, postbox: postbox, message: message)
+        })
+    }
+}
+
+/// Called when a media resource finishes downloading: if it belongs to a view-once
+/// message, copy the message's attachments.
+func ayuViewOnceMediaFetchCompleted(accountPeerId: PeerId, postbox: Postbox, reference: MediaResourceReference) {
+    guard AyuSettings.shared.saveViewOnceMedia else {
+        return
+    }
+    guard case let .media(mediaReference, _) = reference, case let .message(messageReference, _) = mediaReference, messageReference.isSecret == true, let id = messageReference.id else {
+        return
+    }
+    let _ = postbox.transaction { transaction -> Void in
+        guard let message = transaction.getMessage(id) else {
+            return
+        }
+        let _ = ayuSaveViewOnceMedia(accountPeerId: accountPeerId, postbox: postbox, message: message)
+    }.start()
 }
 
 /// Attachments copied from a view-once message.
