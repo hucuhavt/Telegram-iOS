@@ -162,6 +162,7 @@ enum PeerInfoContextSubject {
 }
 
 enum PeerInfoSettingsSection {
+    case ayugram
     case avatar
     case edit
     case proxy

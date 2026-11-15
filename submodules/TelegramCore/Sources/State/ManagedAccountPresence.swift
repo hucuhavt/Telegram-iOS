@@ -3,6 +3,7 @@ internal import TelegramApi
 import Postbox
 import SwiftSignalKit
 import MtProtoKit
+import AyuSettings
 
 private typealias SignalKitTimer = SwiftSignalKit.Timer
 
@@ -53,7 +54,15 @@ private final class AccountPresenceManagerImpl {
             }, queue: self.queue)
             self.onlineTimer = timer
             timer.start()
-            request = self.network.request(Api.functions.account.updateStatus(offline: .boolFalse))
+            let ayuSettings = AyuSettings.shared
+            if ayuSettings.sendOnlinePackets {
+                request = self.network.request(Api.functions.account.updateStatus(offline: .boolFalse))
+            } else if ayuSettings.sendOfflinePacketAfterOnline {
+                // AyuGram ghost mode: keep reporting "offline" while the app is open.
+                request = self.network.request(Api.functions.account.updateStatus(offline: .boolTrue))
+            } else {
+                request = .complete()
+            }
         } else {
             self.onlineTimer?.invalidate()
             self.onlineTimer = nil

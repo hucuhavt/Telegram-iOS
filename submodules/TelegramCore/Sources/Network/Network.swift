@@ -5,6 +5,7 @@ internal import TelegramApi
 import SwiftSignalKit
 import MtProtoKit
 import NetworkLogging
+import AyuSettings
 
 #if os(iOS)
     import CloudData
@@ -1373,6 +1374,10 @@ public final class Network: NSObject {
     }
     
     func requestWithAdditionalInfo<T>(_ data: (FunctionDescription, Buffer, DeserializeFunctionResponse<T>), info: NetworkRequestAdditionalInfo, tag: NetworkRequestDependencyTag? = nil, automaticFloodWait: Bool = true, onFloodWaitError: ((String) -> Void)? = nil) -> Signal<NetworkRequestResult<T>, MTRpcError> {
+        // AyuGram ghost mode: drop read receipts, story views and typing activity.
+        if AyuSettings.shared.shouldBlockRequest(functionName: data.0.name) {
+            return .complete()
+        }
         let requestService = self.requestService
         return Signal { [requestService] subscriber in
             let request = NetworkEngineRequest(
@@ -1419,6 +1424,10 @@ public final class Network: NSObject {
     }
     
     func request<T>(_ data: (FunctionDescription, Buffer, DeserializeFunctionResponse<T>), tag: NetworkRequestDependencyTag? = nil, automaticFloodWait: Bool = true, onFloodWaitError: ((String) -> Void)? = nil) -> Signal<T, MTRpcError> {
+        // AyuGram ghost mode: drop read receipts, story views and typing activity.
+        if AyuSettings.shared.shouldBlockRequest(functionName: data.0.name) {
+            return .complete()
+        }
         let requestService = self.requestService
         return Signal { [requestService] subscriber in
             let request = NetworkEngineRequest(
