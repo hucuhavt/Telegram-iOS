@@ -1650,8 +1650,20 @@ plist_fragment(
     )
 )
 
+plist_fragment(
+    name = "NotificationServiceEntitlements",
+    extension = "entitlements",
+    template = """
+<key>com.apple.security.application-groups</key>
+<array>
+    <string>group.{telegram_bundle_id}</string>
+</array>
+""".format(telegram_bundle_id = telegram_bundle_id),
+)
+
 ios_extension(
     name = "NotificationServiceExtension" + notificationServiceExtensionVersion,
+    entitlements = ":NotificationServiceEntitlements.entitlements",
     bundle_id = "{telegram_bundle_id}.NotificationService".format(
         telegram_bundle_id = telegram_bundle_id,
     ),

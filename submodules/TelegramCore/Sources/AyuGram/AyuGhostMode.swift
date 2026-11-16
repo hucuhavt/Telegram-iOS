@@ -135,17 +135,18 @@ public func ayuDeletedMessageMedia(accountPeerId: EnginePeer.Id, messageId: Engi
     return AyuSavedMediaStore.shared.deletedMessageFiles(accountId: accountPeerId.toInt64(), peerId: messageId.peerId.toInt64(), namespace: messageId.namespace, id: messageId.id)
 }
 
-// MARK: - View-once media
+// MARK: - View-once / self-destructing media
 
-/// Copies the downloaded attachments of a view-once message into the AyuGram cache
-/// before the message is consumed and its media is replaced with an expired placeholder.
+/// Copies the downloaded attachments of a self-destructing (view-once/timer-based) message into the AyuGram cache
+/// before the message is consumed or its media is replaced/cleaned up.
 public func ayuSaveViewOnceMedia(accountPeerId: PeerId, postbox: Postbox, message: Message) -> [String] {
     let settings = AyuSettings.shared
-    guard settings.saveViewOnceMedia, message.minAutoremoveOrClearTimeout == viewOnceTimeout else {
+    guard settings.saveViewOnceMedia, let timeout = message.minAutoremoveOrClearTimeout, timeout > 0 else {
         return []
     }
     let files = ayuDownloadedMediaFiles(mediaBox: postbox.mediaBox, media: message.media)
-    guard !files.isEmpty, files.count == ayuViewOnceMediaResources(message.media).count else {
+    let resources = ayuViewOnceMediaResources(message.media)
+    guard !files.isEmpty, !resources.isEmpty, files.count == resources.count else {
         return []
     }
     return AyuSavedMediaStore.shared.copy(
@@ -158,7 +159,7 @@ public func ayuSaveViewOnceMedia(accountPeerId: PeerId, postbox: Postbox, messag
     )
 }
 
-/// Full-size resources of a view-once message's attachments.
+/// Full-size resources of a message's attachments that should be preserved for self-destructing media.
 private func ayuViewOnceMediaResources(_ media: [Media]) -> [(media: Media, resource: MediaResource)] {
     var result: [(media: Media, resource: MediaResource)] = []
     for item in media {
@@ -173,11 +174,11 @@ private func ayuViewOnceMediaResources(_ media: [Media]) -> [(media: Media, reso
     return result
 }
 
-/// Downloads a view-once message's attachments in the background and copies them into
+/// Downloads a self-destructing (view-once/timer-based) message's attachments in the background and copies them into
 /// the AyuGram cache as soon as each one is complete, so the copy exists before the
-/// message is consumed and its media is replaced with an expired placeholder.
+/// message is consumed, expires, or its media is replaced/cleaned up.
 func ayuTrackViewOnceMedia(accountPeerId: PeerId, postbox: Postbox, message: Message) {
-    guard AyuSettings.shared.saveViewOnceMedia, message.minAutoremoveOrClearTimeout == viewOnceTimeout else {
+    guard AyuSettings.shared.saveViewOnceMedia, let timeout = message.minAutoremoveOrClearTimeout, timeout > 0 else {
         return
     }
     let _ = ayuSaveViewOnceMedia(accountPeerId: accountPeerId, postbox: postbox, message: message)
@@ -200,13 +201,13 @@ func ayuTrackViewOnceMedia(accountPeerId: PeerId, postbox: Postbox, message: Mes
     }
 }
 
-/// Called when a media resource finishes downloading: if it belongs to a view-once
-/// message, copy the message's attachments.
+/// Called when a media resource finishes downloading: if it belongs to a self-destructing
+/// (view-once/timer-based) message, copy the message's attachments.
 func ayuViewOnceMediaFetchCompleted(accountPeerId: PeerId, postbox: Postbox, reference: MediaResourceReference) {
     guard AyuSettings.shared.saveViewOnceMedia else {
         return
     }
-    guard case let .media(mediaReference, _) = reference, case let .message(messageReference, _) = mediaReference, messageReference.isSecret == true, let id = messageReference.id else {
+    guard case let .media(mediaReference, _) = reference, case let .message(messageReference, _) = mediaReference, let id = messageReference.id else {
         return
     }
     let _ = postbox.transaction { transaction -> Void in
