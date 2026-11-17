@@ -1653,12 +1653,15 @@ plist_fragment(
 plist_fragment(
     name = "NotificationServiceEntitlements",
     extension = "entitlements",
-    template = """
+    template = "".join([
+        aps_fragment,
+        """
 <key>com.apple.security.application-groups</key>
 <array>
     <string>group.{telegram_bundle_id}</string>
 </array>
 """.format(telegram_bundle_id = telegram_bundle_id),
+    ]),
 )
 
 ios_extension(

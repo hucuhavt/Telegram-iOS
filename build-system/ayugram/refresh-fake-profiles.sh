@@ -24,6 +24,34 @@ for profile in "$ROOT"/profiles/*.mobileprovision; do
         -e "/<key>ExpirationDate<\/key>/{n;s#<date>[^<]*</date>#<date>$EXPIRATION</date>#;}" \
         -e "/<key>CreationDate<\/key>/{n;s#<date>[^<]*</date>#<date>$CREATION</date>#;}" \
         "$WORK/$name.plist"
+done
+
+python3 - "$WORK" <<'PY'
+import os
+import plistlib
+import sys
+
+work = sys.argv[1]
+app_name = "Telegram.mobileprovision.plist"
+with open(os.path.join(work, app_name), "rb") as file:
+    aps_environment = plistlib.load(file)["Entitlements"]["aps-environment"]
+
+for name in os.listdir(work):
+    if not name.endswith(".mobileprovision.plist"):
+        continue
+    path = os.path.join(work, name)
+    with open(path, "rb") as file:
+        profile = plistlib.load(file)
+    entitlements = profile["Entitlements"]
+    if entitlements.get("aps-environment") == aps_environment:
+        continue
+    entitlements["aps-environment"] = aps_environment
+    with open(path, "wb") as file:
+        plistlib.dump(profile, file)
+PY
+
+for profile in "$ROOT"/profiles/*.mobileprovision; do
+    name="$(basename "$profile")"
     openssl smime -sign -binary -nodetach -outform der -md sha256 \
         -signer "$WORK/cert.pem" -inkey "$WORK/key.pem" \
         -in "$WORK/$name.plist" -out "$profile"
